@@ -1,85 +1,194 @@
 import { NextFunction, Request, Response } from "express";
 import User, { IUser } from "../models/userModel";
-import { generateTokens } from "../utils/jwtUtils";
 import { setCookie } from "../utils/cookieUtils";
 
 import catchAsyncError from "../middlewares/catchAsyncError";
 import ErrorHandler from "../middlewares/ErrorHandler";
+import errorHandler from "../utils/errorHandler";
+import sendmail from "../utils/sendmail";
+import { activationToken } from "../utils/activationToken";
+import { redis } from "../models/redis";
+import { generateTokens } from "../utils/generateTokens";
 
-export const signup = catchAsyncError(
-  async (req: Request, res: Response): Promise<void> => {
-    const { username, email, password } = req.body;
 
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      res.status(400).json({ error: "Email already exists" });
-    }
+interface IRegistrationBody {
+  name: string;
+  email: string;
+  password: string;
+  avatar?: string;
+  contact?: number;
+}
 
-    // Create new user
-    const newUser: IUser = new User({
-      username,
+export const addUser = catchAsyncError(
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    // const requestBody: IRegistrationBody = req.body as IRegistrationBody ;
+    console.log(req.body)
+    const { name, email, password} = req.body as IRegistrationBody;
+
+    if (!name || !email || !password)
+      return next(new errorHandler(`fill all deatils`));
+
+    const isEmailExit = await User.findOne({ email: email });
+    if (isEmailExit)
+      return next(
+        new errorHandler("User With This Email Address Already Exits")
+      );
+
+    const ActivationCode = Math.floor(1000 + Math.random() * 9000);
+
+    const newUser = await User.create({
+      name,
       email,
       password,
+      isVerified: true,
     });
-    await newUser.save();
+    console.log(newUser)
 
-    //tokens
-    const { accessToken, refreshToken } = generateTokens(newUser);
-
-    // Set tokens in cookies
-    setCookie(res, "accessToken", accessToken, { httpOnly: true });
-    setCookie(res, "refreshToken", refreshToken, { httpOnly: true });
-    res.status(201).json({
-      message: "User registered successfully",
-      user: newUser,
-      accessToken,
-    });
+    res
+      .status(201)
+      .json({
+        succcess: true,
+        message: "successfully Add new user",
+        user: newUser,
+      });
   }
 );
 
-export const login = catchAsyncError(
-  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    const { email, password } = req.body;
+interface IloginReques {
+  email: string;
+  password: string;
+}
 
-    if (!email || !password) {
-      next(new ErrorHandler("please enter username and email", 400));
-      return;
-    }
+export const userLogin = catchAsyncError(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { email, password } = req.body as IloginReques;
+    console.log(req.body)
+    if (!email || !password)
+      return next(new errorHandler("Pleas fill all details"));
 
-    const user: IUser | null = await User.findOne({ email });
+    // const user: IUser | null = await User.findOne({ email: email }).populate("cou").select("+password -courseData.videoUrl -courseData.suggestion -courseData.questions -courseData.links")
+    const user = await User.findOne({ email: email }).select("+password").exec();
+    console.log(user)
+    
+    if (!user)
+      return next(new errorHandler("User Not Found With this Email", 401));
 
-    if (!user) {
-      res.status(401).json({ error: "Invalid email or password" });
-      return;
-    }
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) return next(new errorHandler("Wrong Credientials", 401));
 
-    // Compare passwords
-    const passwordMatch = await user.comparePassword(password);
 
-    if (!passwordMatch) {
-      res.status(401).json({ error: "Invalid email or password" });
-      return;
-    }
+    const tokens = generateTokens(user);
 
-    const { accessToken, refreshToken } = generateTokens(user);
+    user.refreshToken = tokens.refreshToken;
+    await user.save();
+    user.password = "";
 
-    // Set tokens in cookies
-    setCookie(res, "accessToken", accessToken, { httpOnly: true });
-    setCookie(res, "refreshToken", refreshToken, { httpOnly: true });
-    res.status(200).json({ message: "Login successful", user, accessToken });
+    // await redis.set(user._id, JSON.stringify(user));
+
+    const options = {
+      httpOnly: true,
+      secure: true,
+    };
+
+    res
+      .status(200)
+      .cookie("accessToken", tokens?.accessToken, {
+        httpOnly: true,
+        secure: true,
+        maxAge:  24 * 60 * 60 * 1000,
+        sameSite:"none"
+      })
+      .cookie("refreshToken", tokens?.refreshToken, {
+        httpOnly: true,
+        secure: true,
+        maxAge:  24 * 60 * 60 * 1000,
+        sameSite:"none"
+      })
+      .json({
+        succcess: true,
+        message: "successfully login",
+        user: user,
+        accessToken: tokens?.accessToken,
+        refreshToken: tokens?.accessToken,
+      });
   }
 );
 
-export const logout = (req: Request, res: Response): void => {
-  try {
-    // Clear token cookies
-    res.clearCookie("accessToken");
-    res.clearCookie("refreshToken");
+export const currUser = catchAsyncError(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      console.log(req.user)
+      const user = req.user;
+      if(!user){
+        next(new errorHandler("user not lonin",401))
+      }
 
-    // Send response
-    res.status(200).json({ message: "Logout successful" });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Internal Server Error" });
+      res.status(200).json({
+        success: true,
+        user,
+      });
+    } catch (error: any) {
+      return next(new errorHandler(error.message, 500));
+    }
   }
-};
+);
+
+
+export const userLongOut = catchAsyncError(
+  async (req: Request, res: Response, next: NextFunction) => {
+    // const id = req.user?._id;
+    const id = req.params.id;
+    console.log(id)
+    if(!id) return next(new errorHandler("login to user the resorse",404))
+    await User.findByIdAndUpdate(id, {
+      $set: {
+        refreshToken: undefined,
+      },
+    });
+
+    // await redis.del(id);
+    const options = {
+      httpOnly: true,
+      secure: true,
+    };
+    res.clearCookie("accessToken", options)
+      .clearCookie("refreshToken", options)
+      .json({
+        succcess: true,
+        message: "successfully logout",
+      });
+  }
+);
+
+
+export const allUsers = catchAsyncError(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const users = await User.find().exec();
+
+    res.json({
+        succcess: true,
+        users: users
+      });
+  }
+);
+
+
+export const removeUser = catchAsyncError(
+  async (req: Request, res: Response, next: NextFunction) => {
+    const id = req.params.id;
+
+    const user = await User.findById(id).exec();
+
+    if(!user){
+      return next(new errorHandler("User not found",404))
+    }
+
+    await User.findByIdAndDelete(id);
+    
+    res.json({
+        succcess: true,
+        message:"Revome user"
+      });
+  }
+);
+

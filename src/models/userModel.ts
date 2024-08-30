@@ -1,51 +1,98 @@
-import { Schema, Document, Model, model } from "mongoose";
-import bcrypt from "bcryptjs"; // Make sure you have installed @types/bcryptjs
-import { NextFunction } from "express";
+import mongoose, { Document, Model, Schema } from "mongoose";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 
-export interface IUser extends Document {
-  username: string;
-  email: string;
-  password: string;
-  comparePassword(candidatePassword: string): Promise<boolean>;
+export interface payment_info {
+  courseID: string;
+  paymentID: string;
+  paymentTime: string;
+  paymentDate: Date;
 }
 
-const userSchema: Schema<IUser> = new Schema({
-  username: { type: String, required: true },
-  email: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
-});
+export interface IUser extends Document {
+  name: string;
+  email: string;
+  role: string;
+  isVerified: boolean;
+  password: string;
+  refreshToken: string;
+  comparePassword: (password: string) => Promise<boolean>;
+  generateAccesToken: () => string;
+  generateRefreashToken: () => string;
+}
 
-// Define a pre-save hook to hash the password before saving
-userSchema.pre<IUser>("save", async function (next) {
+const userModel: Schema<IUser> = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: [true, "First name is required"],
+      minLenght: [3, "Name should be atleast 3 character long"],
+    },
+    email: {
+      type: String,
+      unique: true,
+      require: [true, "Email is required"],
+    },
+    password: {
+      type: String,
+      select: false,
+    },
+    refreshToken: {
+      type: String,
+      default: "0",
+      select: false,
+    },
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
+    role: {
+      type: String,
+      emum: ["user", "admin"],
+      default: "user",
+    },
+  },
+  { timestamps: true }
+);
+
+userModel.pre<IUser>("save", async function (next) {
   if (!this.isModified("password")) {
-    return next();
+    next();
   }
-  try {
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt);
-    return next();
-  } catch (error) {
-    if (error == null) {
-      return;
-    }
-    console.log(error);
-    /* Doute */
-    // next(error); // Ensure next parameter is of type NextFunction
-  }
+  this.password = await bcrypt.hash(this.password, 10);
+  next();
 });
 
-// Define a method to compare passwords
-userSchema.methods.comparePassword = async function (
-  candidatePassword: string
+userModel.methods.comparePassword = async function (
+  password: string
 ): Promise<boolean> {
-  try {
-    const isMatch = await bcrypt.compare(candidatePassword, this.password);
-    return isMatch;
-  } catch (error) {
-    return false;
-  }
+  let match = await bcrypt.compare(password, this.password);
+  return match;
 };
 
-const User: Model<IUser> = model<IUser>("User", userSchema);
+userModel.methods.generateAccesToken = function () {
+  const token: string = process.env.ACCESS_TOKEN_SECRET || "";
+  return jwt.sign(
+    {
+      _id: this._id,
+      email: this.email,
+    },
+    token,
+    { expiresIn: process.env.ACCESS_TOKEN_EXPIRY }
+  );
+};
+
+userModel.methods.generateRefreashToken = function () {
+  const token: string = process.env.REFRESH_TOKEN_SECRET || "";
+  return jwt.sign(
+    {
+      _id: this._id,
+    },
+    token,
+    { expiresIn: process.env.REFRESH_TOKEN_EXPIRY }
+  );
+};
+
+const User: Model<IUser> = mongoose.model("user", userModel);
 
 export default User;
