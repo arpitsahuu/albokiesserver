@@ -21,16 +21,37 @@ connectDB();
 import morgan from "morgan"
 app.use(morgan("dev"));
 
-app.options('*', cors({
-  origin: 'http://localhost:3000',
-  credentials: true
-}));
+// app.options('*', cors({
+//   origin: 'http://localhost:3000',
+//   credentials: true
+// }));
+
+// app.use(cors({
+//   origin: 'https://albokoes.vercel.app', // Specify the allowed origin
+//   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+//   allowedHeaders: ['Content-Type', 'Authorization'], // Include any headers your client might send
+//   credentials: true, // Set this to true if you need to send cookies or other credentials
+// }));
+
+
+const allowedOrigins = [
+	'https://albokoes.vercel.app/',"https://vercel.com/arpits-projects-1c6b9bf9/albokoes/AtiQ43gQECG3YmPf4GZXrcxC9n9T","https://www.albokoes.com/",
+	"http://localhost:3000",
+];
 
 app.use(cors({
-  origin: 'http://localhost:3000', // Specify the allowed origin
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'], // Include any headers your client might send
-  credentials: true, // Set this to true if you need to send cookies or other credentials
+	origin: allowedOrigins,
+	credentials: true,
+	// optionsSuccessStatus: 200 ,// Address potential preflight request issues
+	allowedHeaders: [
+		'Content-Type', 
+		'Authorization', 
+		'X-Requested-With', 
+		'Accept', 
+		'Origin', 
+		'X-Auth-Token'
+	  ], // Specify the allowed headers for the CORS request
+	  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
 }));
 
 /* router */
