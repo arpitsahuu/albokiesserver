@@ -23,7 +23,6 @@ export const isAutheticated = catchAsyncError(
   async (req: Request<any>, res: Response, next: NextFunction) => {
     const accessToken = req.cookies.accessToken as string ;
     const refreshToken = req.cookies.refreshToken as string;
-    console.log(accessToken)
 
     if (!accessToken) {
       return next(
@@ -32,7 +31,6 @@ export const isAutheticated = catchAsyncError(
     }
 
     const decoded = jwt.decode(accessToken) as JwtPayload;
-    console.log(decoded)
 
     if (!decoded) {
       return next(new ErrorHandler("access token is not valid", 400));
@@ -48,7 +46,6 @@ export const isAutheticated = catchAsyncError(
     } else {
       const user = await redis.get(decoded._id);
       // const user = await User.findById(decoded._id)
-      console.log(user)
       if (!user) {
         return next(
           new ErrorHandler("Please login to access this resource", 400)

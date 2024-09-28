@@ -15,9 +15,11 @@ export interface IEvent extends Document {
   date: Date;             
   organizer: string;       
   tags: string[];          
-  isVirtual: boolean;    
-  attendees: string[];   
-  paragraphs: Paragraph[]; 
+  isVirtual: boolean;   
+  details: {
+    title?: string;
+    paragraphs: string;
+  }[];
 }
 
 
@@ -67,14 +69,19 @@ const eventSchema: Schema<IEvent> = new mongoose.Schema(
       type: Boolean,
       default: false, // Default to false (event is in-person by default)
     },
-    attendees: {
-      type: [String], // Array of attendee identifiers
-      default: [],    // Default to an empty array if no attendees are registered
-    },
-    paragraphs: {
-      type: [paragraphSchema], // Array of paragraphs for detailed descriptions
-      required: [true, "Paragraphs are required"], // Ensures at least one paragraph
-    },
+    details: [
+      {
+        title: {
+          type: String,
+          required: false, // Optional title for the details
+        },
+        paragraphs: {
+          type: String,
+          required: [true, "Paragraphs are required in details"],
+        },
+      },
+    ],
+
   },
   { timestamps: true } // Adds createdAt and updatedAt timestamps
 );

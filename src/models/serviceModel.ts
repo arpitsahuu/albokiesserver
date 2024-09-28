@@ -56,6 +56,14 @@ const serviceSchema: Schema<IService> = new mongoose.Schema(
           type: String,
           required: [true, "Paragraphs are required in details"],
         },
+        image:{
+          public_id: {
+            type: String,
+          },
+          url: {
+            type: String,
+          },
+        },
       },
     ],
   },

@@ -42,7 +42,13 @@ export const addUser = catchAsyncError(
       password,
       isVerified: true,
     });
-    console.log(newUser)
+    const userCount = await User.countDocuments().exec();
+    let countString = await redis.get("count")
+    if(countString){
+      const count = await JSON.parse(countString);
+      count.userCounts = userCount
+      await redis.set("count",JSON.stringify(count));
+    }
 
     res
       .status(201)
@@ -117,7 +123,6 @@ export const userLogin = catchAsyncError(
 export const currUser = catchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      console.log(req.user)
       const user = req.user;
       if(!user){
         next(new errorHandler("user not lonin",401))
@@ -163,6 +168,7 @@ export const userLongOut = catchAsyncError(
 
 export const allUsers = catchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
+
     const users = await User.find().exec();
 
     res.json({
@@ -192,3 +198,88 @@ export const removeUser = catchAsyncError(
   }
 );
 
+export const updateUserInfo = catchAsyncError(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      let { name, email } = req.body;
+      console.log(req.body)
+  
+      // Check if the user is authenticated
+      const userId = req.user?._id;
+      const user = await User.findByIdAndUpdate(userId,{name,email}, { new: true, runValidators: true })
+      // let user = await User.findById(userId);
+  
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const tokens = generateTokens(user);
+
+      user.refreshToken = tokens.refreshToken;
+      await user.save();
+      user.password = "";
+  
+      // await redis.set(user._id, JSON.stringify(user));
+  
+      const options = {
+        httpOnly: true,
+        secure: true,
+      };
+  
+      res
+        .status(200)
+        .cookie("accessToken", tokens?.accessToken, {
+          httpOnly: true,
+          secure: true,
+          maxAge:  24 * 60 * 60 * 1000,
+          sameSite:"none"
+        })
+        .cookie("refreshToken", tokens?.refreshToken, {
+          httpOnly: true,
+          secure: true,
+          maxAge:  24 * 60 * 60 * 1000,
+          sameSite:"none"
+        })
+        .json({
+          succcess: true,
+          message: "successfully update the user",
+          user: user,
+          accessToken: tokens?.accessToken,
+          refreshToken: tokens?.accessToken,
+        });
+    } catch (error) {
+      res.status(500).json({ message: "Server error", error });
+    }
+  }
+);
+
+
+export const updatePassword = catchAsyncError(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+  
+      // Check if the user is authenticated
+      const userId = req.user?._id;
+      const user = await User.findById(userId).select("+password");
+  
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+  
+      // Check if the current password is correct
+      const isMatch = await user.comparePassword(currentPassword);
+      if (!isMatch) {
+        return res.status(400).json({ message: "Current password is incorrect" });
+      }
+  
+      // Hash the new password and update the user document
+      user.password = newPassword;
+      await user.save();
+  
+      res.status(200).json({ message: "Password updated successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Server error", error });
+    }
+  }
+);

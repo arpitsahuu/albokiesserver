@@ -1,14 +1,13 @@
+"use strict";
 // import { Request, Response } from "express";
 // import Item, { IItem } from "../models/indexModel";
 // import catchAsyncError from "../middlewares/catchAsyncError";
-
 // export const getAllItems = catchAsyncError(
 //   async (req: Request, res: Response): Promise<void> => {
 //     const items: IItem[] = await Item.find();
 //     res.status(200).json(items);
 //   }
 // );
-
 // export const createItem = catchAsyncError(
 //   async (req: Request, res: Response): Promise<void> => {
 //     const { name, quantity } = req.body;
@@ -18,7 +17,6 @@
 //     res.status(200).json(savedItem);
 //   }
 // );
-
 // export const updateItem = catchAsyncError(
 //   async (req: Request, res: Response): Promise<void> => {
 //     const { name, quantity } = req.body;
@@ -39,7 +37,6 @@
 //     res.status(200).json(saveItem);
 //   }
 // );
-
 // export const deleteItem = catchAsyncError(
 //   async (req: Request, res: Response) => {
 //     const { id } = req.params;

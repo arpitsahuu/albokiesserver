@@ -15,7 +15,10 @@ export interface IInnovation extends Document {
   tags: string[];          
   status: string;          
   impact: string;          
-  paragraphs: Paragraph[]; 
+  details: {
+    title?: string;
+    paragraphs: string;
+  }[]; 
 }
 
 
@@ -64,10 +67,18 @@ const innovationSchema: Schema<IInnovation> = new mongoose.Schema(
       type: String,
       required: [true, "Impact of the innovation is required"],
     },
-    paragraphs: {
-      type: [paragraphSchema], // Array of paragraphs for detailed descriptions or features
-      required: [true, "At least one paragraph is required"], // Ensures at least one paragraph
-    },
+    details: [
+      {
+        title: {
+          type: String,
+          required: false, // Optional title for the details
+        },
+        paragraphs: {
+          type: String,
+          required: [true, "Paragraphs are required in details"],
+        },
+      },
+    ],
   },
   { timestamps: true } // Adds createdAt and updatedAt timestamps
 );

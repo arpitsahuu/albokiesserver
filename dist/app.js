@@ -1,0 +1,56 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+/* imports */
+require("dotenv").config({ path: "./.env" });
+const express_1 = __importDefault(require("express"));
+const dbConnection_1 = __importDefault(require("./src/models/dbConnection"));
+const cookie_parser_1 = __importDefault(require("cookie-parser"));
+const cors_1 = __importDefault(require("cors"));
+const events = require('events');
+const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
+const app = (0, express_1.default)();
+events.EventEmitter.defaultMaxListeners = 20;
+/* middleware */
+app.use(express_1.default.json({ limit: '50mb' }));
+app.use(express_1.default.urlencoded({ extended: true }));
+app.use((0, cookie_parser_1.default)());
+(0, dbConnection_1.default)();
+// Loger
+const morgan_1 = __importDefault(require("morgan"));
+app.use((0, morgan_1.default)("dev"));
+app.options('*', (0, cors_1.default)({
+    origin: 'http://localhost:3000',
+    credentials: true
+}));
+app.use((0, cors_1.default)({
+    origin: 'http://localhost:3000', // Specify the allowed origin
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'], // Include any headers your client might send
+    credentials: true, // Set this to true if you need to send cookies or other credentials
+}));
+/* router */
+const userRouter_1 = __importDefault(require("./src/routes/userRouter"));
+const errorMiddleware_1 = __importDefault(require("./src/middlewares/errorMiddleware"));
+const serviceRouter_1 = __importDefault(require("./src/routes/serviceRouter"));
+const newarticalRouter_1 = __importDefault(require("./src/routes/newarticalRouter"));
+const eventRouters_1 = __importDefault(require("./src/routes/eventRouters"));
+const analyticsRouter_1 = __importDefault(require("./src/routes/analyticsRouter"));
+app.get("/", (req, res) => {
+    res.json({ greed: "welcome to albokoes" });
+});
+app.use("/api/v1", userRouter_1.default, serviceRouter_1.default, newarticalRouter_1.default, eventRouters_1.default, analyticsRouter_1.default);
+/* 404 */
+app.get("*", (req, res) => {
+    res.status(404).json({
+        message: "Not Found",
+    });
+});
+/* error Handling */
+app.use(errorMiddleware_1.default);
+/* server */
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+});

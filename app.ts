@@ -4,13 +4,15 @@ import express, { Request, Response } from "express";
 import connectDB from "./src/models/dbConnection";
 import cookieParser from "cookie-parser";
 import cors from "cors";
+const events = require('events');
 
 
 const PORT: number = process.env.PORT ? parseInt(process.env.PORT) : 3000;
 const app = express();
+events.EventEmitter.defaultMaxListeners = 20;
 
 /* middleware */
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 connectDB();
@@ -18,6 +20,11 @@ connectDB();
 // Loger
 import morgan from "morgan"
 app.use(morgan("dev"));
+
+app.options('*', cors({
+  origin: 'http://localhost:3000',
+  credentials: true
+}));
 
 app.use(cors({
   origin: 'http://localhost:3000', // Specify the allowed origin
@@ -30,12 +37,15 @@ app.use(cors({
 import userRoutes from "./src/routes/userRouter";
 import errorMiddleware from "./src/middlewares/errorMiddleware";
 import serviceRouter from "./src/routes/serviceRouter";
+import articalRouter from "./src/routes/newarticalRouter";
+import eventRouter from "./src/routes/eventRouters";
+import analyticsRouter from "./src/routes/analyticsRouter";
 
 app.get("/",(req,res) =>{
   res.json({greed:"welcome to albokoes"})
 })
 
-app.use("/api/v1", userRoutes, serviceRouter);
+app.use("/api/v1", userRoutes, serviceRouter, articalRouter ,eventRouter , analyticsRouter);
 
 /* 404 */
 app.get("*", (req: Request, res: Response) => {

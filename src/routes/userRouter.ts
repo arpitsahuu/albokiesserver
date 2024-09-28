@@ -1,5 +1,5 @@
 import express from 'express';
-import { addUser, allUsers, currUser, removeUser, userLogin, userLongOut } from '../controllers/userController';
+import { addUser, allUsers, currUser, removeUser, updatePassword, updateUserInfo, userLogin, userLongOut } from '../controllers/userController';
 import { isAutheticated } from '../middlewares/auth';
 
 const router = express.Router();
@@ -16,12 +16,17 @@ router.post('/logout/:id', userLongOut);
 // Curr User
 router.get('/me',isAutheticated, currUser);
 
+// Revome User
+router.get("/all/user",isAutheticated, allUsers)
+
+// Update password 
+router.put("/user/password",isAutheticated, updatePassword)
+
+// Update User Info
+router.put("/user/info",isAutheticated ,updateUserInfo)
 
 // Revome User
-router.get("/all/user", allUsers)
-
-// Revome User
-router.delete("/remove/user/:id", removeUser)
+router.delete("/user/:id",isAutheticated, removeUser)
 
 
 

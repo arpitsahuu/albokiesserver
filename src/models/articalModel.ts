@@ -23,11 +23,14 @@ export interface IArticle extends Document {
   author: string;         // Author of the article
   tags: string[];         // Array of tags associated with the article
   publishedDate: Date;    // Date when the article was published
-  paragraphs: Paragraph[]; // Array of paragraphs for detailed descriptions
   image: {
     public_id: string;
     url: string;
   };
+  details: {
+    title?: string;
+    paragraphs: string;
+  }[];
 }
 
 // Define the schema for an article
@@ -51,14 +54,21 @@ const articleSchema: Schema<IArticle> = new mongoose.Schema(
       default: Date.now, // Defaults to the current date
     },
     image: {
-      type: Object,
       public_id:String,
       url:String
     },
-    paragraphs: {
-      type: [paragraphSchema], // Array of paragraphs for detailed descriptions
-      required: [true, "At least one paragraph is required"], // Ensures at least one paragraph
-    },
+    details: [
+      {
+        title: {
+          type: String,
+          required: false, // Optional title for the details
+        },
+        paragraphs: {
+          type: String,
+          required: [true, "Paragraphs are required in details"],
+        },
+      },
+    ],
   },
   { timestamps: true } // Adds createdAt and updatedAt timestamps
 );
