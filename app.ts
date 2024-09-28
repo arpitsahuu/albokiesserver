@@ -35,7 +35,7 @@ app.use(morgan("dev"));
 
 
 const allowedOrigins = [
-	'https://albokoes.vercel.app/',"https://vercel.com/arpits-projects-1c6b9bf9/albokoes/AtiQ43gQECG3YmPf4GZXrcxC9n9T","https://www.albokoes.com/",
+	'https://albokoes.vercel.app/',"https://albokoes-y64n.vercel.app","https://www.albokoes.com/",
 	"http://localhost:3000","https://albokoes.vercel.app/","https://albokoes-y64n.vercel.app/"
 ];
 
