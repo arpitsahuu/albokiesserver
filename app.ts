@@ -35,23 +35,27 @@ app.use(morgan("dev"));
 
 
 const allowedOrigins = [
-	'https://albokoes.vercel.app/',"https://albokoes-y64n.vercel.app","https://www.albokoes.com/",
-	"http://localhost:3000","https://albokoes.vercel.app/","https://albokoes-y64n.vercel.app/"
+  'https://albokoes.vercel.app/',
+  'https://albokoes-y64n.vercel.app',
+  'https://www.albokoes.com/', // There's an extra comma after this line
+  'http://localhost:3000',
+  'https://albokoes.vercel.app/', // This is repeated
+  'https://albokoes-y64n.vercel.app' // This is repeated
 ];
 
 app.use(cors({
-	origin: allowedOrigins,
-	credentials: true,
-	// optionsSuccessStatus: 200 ,// Address potential preflight request issues
-	allowedHeaders: [
-		'Content-Type', 
-		'Authorization', 
-		'X-Requested-With', 
-		'Accept', 
-		'Origin', 
-		'X-Auth-Token'
-	  ], // Specify the allowed headers for the CORS request
-	  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  origin: allowedOrigins,
+  credentials: true,
+  optionsSuccessStatus: 200, // Respond with a success status for OPTIONS requests
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'X-Requested-With', 
+    'Accept', 
+    'Origin', 
+    'X-Auth-Token'
+  ],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
 }));
 
 /* router */

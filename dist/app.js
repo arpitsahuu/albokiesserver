@@ -32,13 +32,17 @@ app.use((0, morgan_1.default)("dev"));
 //   credentials: true, // Set this to true if you need to send cookies or other credentials
 // }));
 const allowedOrigins = [
-    'https://albokoes.vercel.app/', "https://albokoes-y64n.vercel.app", "https://www.albokoes.com/",
-    "http://localhost:3000", "https://albokoes.vercel.app/", "https://albokoes-y64n.vercel.app/"
+    'https://albokoes.vercel.app/',
+    'https://albokoes-y64n.vercel.app',
+    'https://www.albokoes.com/', // There's an extra comma after this line
+    'http://localhost:3000',
+    'https://albokoes.vercel.app/', // This is repeated
+    'https://albokoes-y64n.vercel.app' // This is repeated
 ];
 app.use((0, cors_1.default)({
     origin: allowedOrigins,
     credentials: true,
-    // optionsSuccessStatus: 200 ,// Address potential preflight request issues
+    optionsSuccessStatus: 200, // Respond with a success status for OPTIONS requests
     allowedHeaders: [
         'Content-Type',
         'Authorization',
@@ -46,8 +50,8 @@ app.use((0, cors_1.default)({
         'Accept',
         'Origin',
         'X-Auth-Token'
-    ], // Specify the allowed headers for the CORS request
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    ],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
 }));
 /* router */
 const userRouter_1 = __importDefault(require("./src/routes/userRouter"));
