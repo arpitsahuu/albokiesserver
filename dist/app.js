@@ -37,7 +37,9 @@ const allowedOrigins = [
     'https://www.albokoes.com/', // There's an extra comma after this line
     'http://localhost:3000',
     'https://albokoes.vercel.app/', // This is repeated
-    'https://albokoes-y64n.vercel.app' // This is repeated
+    'https://albokoes-y64n.vercel.app', // This is repeated
+    'https://www.albokoes.com',
+    'https://www.albokoes.in/'
 ];
 app.use((0, cors_1.default)({
     origin: allowedOrigins,
