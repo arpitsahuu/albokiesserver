@@ -1,7 +1,7 @@
 import express from 'express';
 import { addContactForm, addUser, allUsers, currUser, removeUser, updatePassword, updateUserInfo, userLogin, userLongOut } from '../controllers/userController';
 import { isAutheticated } from '../middlewares/auth';
-import upload from '../middlewares/cloudinary';
+// import upload from '../middlewares/cloudinary';
 
 const router = express.Router();
 
@@ -34,7 +34,7 @@ router.delete("/user/:id",isAutheticated, removeUser)
 router.post('/submit', addContactForm);
 
 // Add Contact form data
-router.post('/submit/joinus', upload.single('resume'), addContactForm);
+// router.post('/submit/joinus', upload.single('resume'), addContactForm);
 
 
 
