@@ -44,7 +44,7 @@ const allowedOrigins = [
   'https://albokoes.vercel.app/', // This is repeated
   'https://albokoes-y64n.vercel.app', // This is repeated
   'https://www.albokoes.com',
-  'https://www.albokoes.in/'
+  'https://www.albokoes.in'
 ];
 
 app.use(cors({
