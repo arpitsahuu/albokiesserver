@@ -1,6 +1,7 @@
 import express from 'express';
-import { addUser, allUsers, currUser, removeUser, updatePassword, updateUserInfo, userLogin, userLongOut } from '../controllers/userController';
+import { addContactForm, addUser, allUsers, currUser, removeUser, updatePassword, updateUserInfo, userLogin, userLongOut } from '../controllers/userController';
 import { isAutheticated } from '../middlewares/auth';
+import upload from '../middlewares/cloudinary';
 
 const router = express.Router();
 
@@ -27,6 +28,15 @@ router.put("/user/info",isAutheticated ,updateUserInfo)
 
 // Revome User
 router.delete("/user/:id",isAutheticated, removeUser)
+
+
+// Add Contact form data
+router.post('/submit', addContactForm);
+
+// Add Contact form data
+router.post('/submit/joinus', upload.single('resume'), addContactForm);
+
+
 
 
 

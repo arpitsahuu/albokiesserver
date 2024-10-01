@@ -7,8 +7,9 @@ import ErrorHandler from "../middlewares/ErrorHandler";
 import errorHandler from "../utils/errorHandler";
 import sendmail from "../utils/sendmail";
 import { activationToken } from "../utils/activationToken";
-import { redis } from "../models/redis";
+// import { redis } from "../models/redis";
 import { generateTokens } from "../utils/generateTokens";
+import ContactForm from "../models/contactUsModel";
 
 
 interface IRegistrationBody {
@@ -43,12 +44,6 @@ export const addUser = catchAsyncError(
       isVerified: true,
     });
     const userCount = await User.countDocuments().exec();
-    let countString = await redis.get("count")
-    if(countString){
-      const count = await JSON.parse(countString);
-      count.userCounts = userCount
-      await redis.set("count",JSON.stringify(count));
-    }
 
     res
       .status(201)
@@ -283,3 +278,67 @@ export const updatePassword = catchAsyncError(
     }
   }
 );
+
+
+
+
+export const addContactForm = catchAsyncError(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { name, email, contact, message } = req.body;
+      console.log(req.body)
+
+      // Validate required fields
+      if (!name || !email || !contact || !message) {
+        return next(new errorHandler('All fields are required', 400));
+      }
+
+      // Create and save the new contact form submission
+      const newContactForm = await ContactForm.create({
+        name,
+        email,
+        contact,
+        message,
+      });
+
+      res.status(201).json({
+        success: true,
+        data: newContactForm,
+      });
+    } catch (error: any) {
+      return next(new errorHandler(error.message, 500));
+    }
+  }
+);
+
+
+
+export const addJoinUsFormData = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { name, email, contactNumber, position } = req.body;
+    const resume = req.file; // This will contain the uploaded file
+    console.log(req.file)
+    console.log(resume)
+
+    if (!resume) {
+      return next(new ErrorHandler("Resume is required", 400));
+    }
+
+    // Save to database (you need to implement this part)
+    // Example: await ContactFormModel.create({ name, email, contactNumber, position, resume: resume.path });
+
+    res.status(201).json({
+      success: true,
+      message: "Contact form data added successfully",
+      data: {
+        name,
+        email,
+        contactNumber,
+        position,
+        resumeUrl: resume.path, // URL of the uploaded file
+      },
+    });
+  } catch (error: any) {
+    return next(new ErrorHandler(error.message, 500));
+  }
+};

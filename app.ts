@@ -33,6 +33,8 @@ app.use(morgan("dev"));
 //   credentials: true, // Set this to true if you need to send cookies or other credentials
 // }));
 
+//tsc && node dist/app.js 
+
 
 const allowedOrigins = [
   'https://albokoes.vercel.app/',

@@ -31,6 +31,7 @@ app.use((0, morgan_1.default)("dev"));
 //   allowedHeaders: ['Content-Type', 'Authorization'], // Include any headers your client might send
 //   credentials: true, // Set this to true if you need to send cookies or other credentials
 // }));
+//tsc && node dist/app.js 
 const allowedOrigins = [
     'https://albokoes.vercel.app/',
     'https://albokoes-y64n.vercel.app',

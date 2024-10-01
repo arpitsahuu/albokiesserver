@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const userController_1 = require("../controllers/userController");
 const auth_1 = require("../middlewares/auth");
+const cloudinary_1 = __importDefault(require("../middlewares/cloudinary"));
 const router = express_1.default.Router();
 // Add New User
 router.post('/add/user', userController_1.addUser);
@@ -23,4 +24,8 @@ router.put("/user/password", auth_1.isAutheticated, userController_1.updatePassw
 router.put("/user/info", auth_1.isAutheticated, userController_1.updateUserInfo);
 // Revome User
 router.delete("/user/:id", auth_1.isAutheticated, userController_1.removeUser);
+// Add Contact form data
+router.post('/submit', userController_1.addContactForm);
+// Add Contact form data
+router.post('/submit/joinus', cloudinary_1.default.single('resume'), userController_1.addContactForm);
 exports.default = router;

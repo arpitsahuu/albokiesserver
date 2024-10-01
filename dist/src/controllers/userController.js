@@ -12,12 +12,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updatePassword = exports.updateUserInfo = exports.removeUser = exports.allUsers = exports.userLongOut = exports.currUser = exports.userLogin = exports.addUser = void 0;
+exports.addJoinUsFormData = exports.addContactForm = exports.updatePassword = exports.updateUserInfo = exports.removeUser = exports.allUsers = exports.userLongOut = exports.currUser = exports.userLogin = exports.addUser = void 0;
 const userModel_1 = __importDefault(require("../models/userModel"));
 const catchAsyncError_1 = __importDefault(require("../middlewares/catchAsyncError"));
+const ErrorHandler_1 = __importDefault(require("../middlewares/ErrorHandler"));
 const errorHandler_1 = __importDefault(require("../utils/errorHandler"));
-const redis_1 = require("../models/redis");
+// import { redis } from "../models/redis";
 const generateTokens_1 = require("../utils/generateTokens");
+const contactUsModel_1 = __importDefault(require("../models/contactUsModel"));
 exports.addUser = (0, catchAsyncError_1.default)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     // const requestBody: IRegistrationBody = req.body as IRegistrationBody ;
     console.log(req.body);
@@ -35,12 +37,6 @@ exports.addUser = (0, catchAsyncError_1.default)((req, res, next) => __awaiter(v
         isVerified: true,
     });
     const userCount = yield userModel_1.default.countDocuments().exec();
-    let countString = yield redis_1.redis.get("count");
-    if (countString) {
-        const count = yield JSON.parse(countString);
-        count.userCounts = userCount;
-        yield redis_1.redis.set("count", JSON.stringify(count));
-    }
     res
         .status(201)
         .json({
@@ -221,3 +217,55 @@ exports.updatePassword = (0, catchAsyncError_1.default)((req, res, next) => __aw
         res.status(500).json({ message: "Server error", error });
     }
 }));
+exports.addContactForm = (0, catchAsyncError_1.default)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { name, email, contact, message } = req.body;
+        console.log(req.body);
+        // Validate required fields
+        if (!name || !email || !contact || !message) {
+            return next(new errorHandler_1.default('All fields are required', 400));
+        }
+        // Create and save the new contact form submission
+        const newContactForm = yield contactUsModel_1.default.create({
+            name,
+            email,
+            contact,
+            message,
+        });
+        res.status(201).json({
+            success: true,
+            data: newContactForm,
+        });
+    }
+    catch (error) {
+        return next(new errorHandler_1.default(error.message, 500));
+    }
+}));
+const addJoinUsFormData = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { name, email, contactNumber, position } = req.body;
+        const resume = req.file; // This will contain the uploaded file
+        console.log(req.file);
+        console.log(resume);
+        if (!resume) {
+            return next(new ErrorHandler_1.default("Resume is required", 400));
+        }
+        // Save to database (you need to implement this part)
+        // Example: await ContactFormModel.create({ name, email, contactNumber, position, resume: resume.path });
+        res.status(201).json({
+            success: true,
+            message: "Contact form data added successfully",
+            data: {
+                name,
+                email,
+                contactNumber,
+                position,
+                resumeUrl: resume.path, // URL of the uploaded file
+            },
+        });
+    }
+    catch (error) {
+        return next(new ErrorHandler_1.default(error.message, 500));
+    }
+});
+exports.addJoinUsFormData = addJoinUsFormData;
