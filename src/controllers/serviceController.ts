@@ -202,104 +202,125 @@ export const addService = catchAsyncError(
 // Edit Services
 export const editService = catchAsyncError(
   async (req: Request, res: Response, next: NextFunction) => {
-    const { id } = req.params;
-    let { title, headline, image, tags, details } = req.body;
+    try {
+      const { id } = req.params; // Get service ID from the request params
+      let { title, headline, image, tags, details } = req.body;
 
-    console.log("call");
-    console.log(title);
-
-    // Fetch the existing service from the database
-    let service = await Service.findById(id);
-    if (!service) {
-      return res.status(404).json({ message: "Service not found" });
-    }
-
-    // Validate input
-    if (
-      !title ||
-      !headline ||
-      !tags ||
-      !Array.isArray(tags) ||
-      tags.length === 0 ||
-      !details ||
-      !Array.isArray(details) ||
-      details.length === 0
-    ) {
-      return res
-        .status(400)
-        .json({ message: "Please provide all required fields." });
-    }
-
-    // Validate each detail in the details array
-    const isValidDetails = details.every(
-      (detail: { title?: string; paragraphs: string }) => {
-        return (
-          (!detail.title || typeof detail.title === "string") && // title is optional but must be a string if provided
-          typeof detail.paragraphs === "string" &&
-          detail.paragraphs.trim().length > 0
-        );
-      }
-    );
-
-    if (!isValidDetails) {
-      return res.status(400).json({
-        message:
-          "Each detail must include at least a 'paragraphs' field with text.",
-      });
-    }
-
-    // Handle image update if necessary
-    if (image && image.url && image.url !== service.image.url) {
-      // Delete the old image from Cloudinary
-      if (service.image.public_id) {
-        await cloudinary.v2.uploader.destroy(service.image.public_id);
+      // Find the service by ID
+      const service = await Service.findById(id);
+      if (!service) {
+        return res.status(404).json({ message: "Service not found." });
       }
 
-      // Upload the new image to Cloudinary
-      const myCloud = await cloudinary.v2.uploader.upload(image.url, {
-        folder: "Services",
-      });
+      // Validate input
+      if (
+        !title ||
+        !headline ||
+        !image ||
+        !image.url ||
+        !tags ||
+        !Array.isArray(tags) ||
+        tags.length === 0 ||
+        !details ||
+        !Array.isArray(details) ||
+        details.length === 0
+      ) {
+        return res
+          .status(400)
+          .json({ message: "Please provide all required fields." });
+      }
 
-      service.image = {
-        public_id: myCloud.public_id,
-        url: myCloud.secure_url,
-      };
-    }
-
-    // Update service fields
-    service.title = title;
-    service.headline = headline;
-    service.tags = tags;
-    service.details = details;
-    console.log(service.title);
-
-    // Save the updated service to the database
-    await service.save();
-    console.log(service.title);
-    console.log(service, "updated data");
-
-    // Fetch services from Redis
-    const servicesString = await redis.get("services");
-    if (servicesString) {
-      let services = JSON.parse(servicesString);
-      console.log(services, "for redis1");
-
-      // Update the service in the cached data
-      const servicesnew = services.map((s: any) =>
-        s._id === id ? service : s
+      // Check details structure
+      const isValidDetails = details.every(
+        (detail: {
+          title?: string;
+          paragraphs: string;
+          image?: { public_id?: string; url?: string };
+        }) => {
+          return (
+            typeof detail.paragraphs === "string" &&
+            detail.paragraphs.trim().length > 0
+          );
+        }
       );
-      console.log(servicesnew, "fomr reids");
+      if (!isValidDetails) {
+        return res.status(400).json({
+          message:
+            "Each detail must include valid paragraphs and optional image fields.",
+        });
+      }
 
-      // Save the updated services list back to Redis
-      await redis.set("services", JSON.stringify(services));
+      // Handle main image upload if it's updated
+      if (image?.url && image.url !== service.image.url) {
+        const myCloud = await cloudinary.v2.uploader.upload(image?.url, {
+          folder: "Services",
+        });
+        image = {
+          public_id: myCloud.public_id,
+          url: myCloud.secure_url,
+        };
+      }
+
+      // Handle image uploads for each detail if available and changed
+      const updatedDetails = await Promise.all(
+        details.map(
+          async (detail: {
+            title?: string;
+            paragraphs: string;
+            image?: { url?: string }; // Use optional chaining for image
+          }) => {
+            if (detail.image?.url) {
+              // If image URL is different from the existing one, upload it
+              const existingDetail = service.details.find(
+                (d) => d.title === detail.title
+              );
+              if (!existingDetail || detail.image.url !== existingDetail.image?.url) {
+                const detailImageUpload = await cloudinary.v2.uploader.upload(
+                  detail.image.url,
+                  {
+                    folder: "ServiceDetails",
+                  }
+                );
+                return {
+                  ...detail,
+                  image: {
+                    public_id: detailImageUpload.public_id,
+                    url: detailImageUpload.secure_url,
+                  },
+                };
+              }
+            }
+            return detail; // If no new image, return the detail as-is
+          }
+        )
+      );
+
+      // Update service fields
+      service.title = title;
+      service.headline = headline;
+      service.image = image;
+      service.tags = tags;
+      service.details = updatedDetails;
+
+      // Save the updated service to the database
+      await service.save();
+
+      res.status(200).json({
+        message: "Service updated successfully",
+        service,
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({
+        message: "An error occurred while updating the service.",
+      });
     }
-
-    res.status(200).json({
-      message: "Service updated successfully",
-      service,
-    });
   }
 );
+
+
+
+
 
 // Delete Services
 export const deleteService = catchAsyncError(

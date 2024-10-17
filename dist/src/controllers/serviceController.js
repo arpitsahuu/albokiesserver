@@ -17,7 +17,6 @@ const catchAsyncError_1 = __importDefault(require("../middlewares/catchAsyncErro
 const serviceModel_1 = __importDefault(require("../models/serviceModel"));
 // import { cloud } from "../middlewares/cloudinary";
 const cloudinary_1 = __importDefault(require("cloudinary"));
-const redis_1 = require("../models/redis");
 cloudinary_1.default.v2.config({
     cloud_name: "ddunz9xtw",
     api_key: process.env.CLOUDINARY_PUBLIC_KEY,
@@ -170,79 +169,86 @@ exports.addService = (0, catchAsyncError_1.default)((req, res, next) => __awaite
 }));
 // Edit Services
 exports.editService = (0, catchAsyncError_1.default)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    const { id } = req.params;
-    let { title, headline, image, tags, details } = req.body;
-    console.log("call");
-    console.log(title);
-    // Fetch the existing service from the database
-    let service = yield serviceModel_1.default.findById(id);
-    if (!service) {
-        return res.status(404).json({ message: "Service not found" });
-    }
-    // Validate input
-    if (!title ||
-        !headline ||
-        !tags ||
-        !Array.isArray(tags) ||
-        tags.length === 0 ||
-        !details ||
-        !Array.isArray(details) ||
-        details.length === 0) {
-        return res
-            .status(400)
-            .json({ message: "Please provide all required fields." });
-    }
-    // Validate each detail in the details array
-    const isValidDetails = details.every((detail) => {
-        return ((!detail.title || typeof detail.title === "string") && // title is optional but must be a string if provided
-            typeof detail.paragraphs === "string" &&
-            detail.paragraphs.trim().length > 0);
-    });
-    if (!isValidDetails) {
-        return res.status(400).json({
-            message: "Each detail must include at least a 'paragraphs' field with text.",
-        });
-    }
-    // Handle image update if necessary
-    if (image && image.url && image.url !== service.image.url) {
-        // Delete the old image from Cloudinary
-        if (service.image.public_id) {
-            yield cloudinary_1.default.v2.uploader.destroy(service.image.public_id);
+    try {
+        const { id } = req.params; // Get service ID from the request params
+        let { title, headline, image, tags, details } = req.body;
+        // Find the service by ID
+        const service = yield serviceModel_1.default.findById(id);
+        if (!service) {
+            return res.status(404).json({ message: "Service not found." });
         }
-        // Upload the new image to Cloudinary
-        const myCloud = yield cloudinary_1.default.v2.uploader.upload(image.url, {
-            folder: "Services",
+        // Validate input
+        if (!title ||
+            !headline ||
+            !image ||
+            !image.url ||
+            !tags ||
+            !Array.isArray(tags) ||
+            tags.length === 0 ||
+            !details ||
+            !Array.isArray(details) ||
+            details.length === 0) {
+            return res
+                .status(400)
+                .json({ message: "Please provide all required fields." });
+        }
+        // Check details structure
+        const isValidDetails = details.every((detail) => {
+            return (typeof detail.paragraphs === "string" &&
+                detail.paragraphs.trim().length > 0);
         });
-        service.image = {
-            public_id: myCloud.public_id,
-            url: myCloud.secure_url,
-        };
+        if (!isValidDetails) {
+            return res.status(400).json({
+                message: "Each detail must include valid paragraphs and optional image fields.",
+            });
+        }
+        // Handle main image upload if it's updated
+        if ((image === null || image === void 0 ? void 0 : image.url) && image.url !== service.image.url) {
+            const myCloud = yield cloudinary_1.default.v2.uploader.upload(image === null || image === void 0 ? void 0 : image.url, {
+                folder: "Services",
+            });
+            image = {
+                public_id: myCloud.public_id,
+                url: myCloud.secure_url,
+            };
+        }
+        // Handle image uploads for each detail if available and changed
+        const updatedDetails = yield Promise.all(details.map((detail) => __awaiter(void 0, void 0, void 0, function* () {
+            var _b, _c;
+            if ((_b = detail.image) === null || _b === void 0 ? void 0 : _b.url) {
+                // If image URL is different from the existing one, upload it
+                const existingDetail = service.details.find((d) => d.title === detail.title);
+                if (!existingDetail || detail.image.url !== ((_c = existingDetail.image) === null || _c === void 0 ? void 0 : _c.url)) {
+                    const detailImageUpload = yield cloudinary_1.default.v2.uploader.upload(detail.image.url, {
+                        folder: "ServiceDetails",
+                    });
+                    return Object.assign(Object.assign({}, detail), { image: {
+                            public_id: detailImageUpload.public_id,
+                            url: detailImageUpload.secure_url,
+                        } });
+                }
+            }
+            return detail; // If no new image, return the detail as-is
+        })));
+        // Update service fields
+        service.title = title;
+        service.headline = headline;
+        service.image = image;
+        service.tags = tags;
+        service.details = updatedDetails;
+        // Save the updated service to the database
+        yield service.save();
+        res.status(200).json({
+            message: "Service updated successfully",
+            service,
+        });
     }
-    // Update service fields
-    service.title = title;
-    service.headline = headline;
-    service.tags = tags;
-    service.details = details;
-    console.log(service.title);
-    // Save the updated service to the database
-    yield service.save();
-    console.log(service.title);
-    console.log(service, "updated data");
-    // Fetch services from Redis
-    const servicesString = yield redis_1.redis.get("services");
-    if (servicesString) {
-        let services = JSON.parse(servicesString);
-        console.log(services, "for redis1");
-        // Update the service in the cached data
-        const servicesnew = services.map((s) => s._id === id ? service : s);
-        console.log(servicesnew, "fomr reids");
-        // Save the updated services list back to Redis
-        yield redis_1.redis.set("services", JSON.stringify(services));
+    catch (error) {
+        console.error(error);
+        res.status(500).json({
+            message: "An error occurred while updating the service.",
+        });
     }
-    res.status(200).json({
-        message: "Service updated successfully",
-        service,
-    });
 }));
 // Delete Services
 exports.deleteService = (0, catchAsyncError_1.default)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {

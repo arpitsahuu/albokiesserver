@@ -16,6 +16,10 @@ export interface IService extends Document {
   details: {
     title?: string;
     paragraphs: string;
+    image?: {
+      public_id?: string;
+      url?: string;
+    }; // Marking image as optional
   }[];
 }
 

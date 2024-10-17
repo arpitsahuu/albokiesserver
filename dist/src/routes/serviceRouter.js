@@ -10,9 +10,10 @@ const serviceRouter = express_1.default.Router();
 // Add New User
 serviceRouter.post('/add/service', serviceController_1.addService);
 // Edit Services
-// serviceRouter.put('/edit/service/:id',isAutheticated, editService);
+serviceRouter.put('/edit/service/:id', auth_1.isAutheticated, serviceController_1.editService);
 // Edit Services
 serviceRouter.delete('/services/:id', auth_1.isAutheticated, serviceController_1.deleteService);
 // Get all services
 serviceRouter.get('/services', serviceController_1.allService);
+serviceRouter.get('/og', serviceController_1.allService);
 exports.default = serviceRouter;
