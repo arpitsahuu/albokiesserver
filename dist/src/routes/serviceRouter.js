@@ -15,5 +15,6 @@ serviceRouter.put('/edit/service/:id', auth_1.isAutheticated, serviceController_
 serviceRouter.delete('/services/:id', auth_1.isAutheticated, serviceController_1.deleteService);
 // Get all services
 serviceRouter.get('/services', serviceController_1.allService);
+//new one
 serviceRouter.get('/og', serviceController_1.allService);
 exports.default = serviceRouter;

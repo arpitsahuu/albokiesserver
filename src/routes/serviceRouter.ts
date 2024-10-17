@@ -20,6 +20,8 @@ serviceRouter.delete('/services/:id',isAutheticated, deleteService);
 serviceRouter.get('/services', allService);
 
 
+
+//new one
 serviceRouter.get('/og', allService);
 
 
